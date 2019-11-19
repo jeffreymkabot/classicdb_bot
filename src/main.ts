@@ -11,7 +11,7 @@ import * as config from "../config.json";
 
 import * as db from "./db.js";
 import { handle_exception, log } from "./io";
-import { execute, get_channel_identity } from "./lib.js";
+import { execute, get_channel_identity, is_item_response_allowed } from "./lib.js";
 import { ClassicDBParser } from "./parsers/classicdb/parser.js";
 import { ItemizationParser } from "./parsers/itemization/parser.js";
 import { alias_meme_response,
@@ -68,6 +68,10 @@ process.on("unhandledRejection", handle_exception);
         message.content = message.content.replace(/`{3}[^`]+`{3}/g, "");
 
         await db.register_guild(message.guild);
+        if (message.channel.type === "text") {
+            await db.register_guild_textchannel(message.channel as discord.TextChannel);
+        }
+
         if (message.isMentioned(discord_client.user)) {
             const command = message.content.split(" ")[1];
             if (command) {
@@ -76,6 +80,10 @@ process.on("unhandledRejection", handle_exception);
                 log(`User ${message.author.id} requested to execute command ${command} with owner ${channel_identity.owner_id}`, LoggingLevel.DEV);
                 return;
             }
+        }
+
+        if (!is_item_response_allowed(message.channel)) {
+            return;
         }
 
         // Meme reponses

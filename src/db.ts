@@ -4,7 +4,7 @@
  * @since 1.3.0
  */
 
-import { Guild } from "discord.js";
+import { Guild, TextChannel } from "discord.js";
 import * as fs from "fs";
 import * as path from "path";
 import * as request from "request-promise";
@@ -179,4 +179,31 @@ export function update_guild_icon(guild: Guild): void {
         request(guild.iconURL).pipe(fs.createWriteStream(icon_path));
         log(`Downloaded new icon for ${guild.name}`, LoggingLevel.DEV);
     }
+}
+
+export async function guild_textchannel_exists(channel_id: string): Promise<boolean> {
+    const q = "SELECT EXISTS(SELECT '1' FROM guild_configs WHERE id = ?) as exi";
+    type Result = { exi: number };
+    const result = await db.get(q, [channel_id]) as Result;
+    return result.exi === 1;
+}
+
+export async function register_guild_textchannel(channel: TextChannel): Promise<void> {
+    const exists = await guild_textchannel_exists(channel.id);
+    if (!exists) {
+        const q = "INSERT INTO guild_textchannels VALUES(?, ?, 0, ?);"
+        await db.run(q, [channel.id, channel.name, channel.guild.id]);
+    }
+}
+
+export async function set_guild_textchannel_allowed(channel: TextChannel, allowed: boolean): Promise<void> {
+    const q = "UPDATE guild_textchannels SET allowed = ? WHERE id = ?";
+    await db.run(q, [allowed ? 1 : 0, channel.id]);
+}
+
+export async function get_guild_allowed_textchannels(guild: Guild): Promise<string[]> {
+    const q = "SELECT id FROM guild_textchannels WHERE guild_id = ? AND allowed = 1";
+    type Result = { id: string };
+    const results = await db.all(q, [guild.id]) as Result[];
+    return results.map(r => r.id);
 }

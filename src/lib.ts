@@ -4,7 +4,7 @@
  * @since 1.2.0
  */
 
-import { DMChannel, GroupDMChannel, Guild, Message, TextChannel } from "discord.js";
+import { DMChannel, GroupDMChannel, Guild, Message, TextChannel, Client } from "discord.js";
 import * as request from "request-promise";
 
 import * as config from "../config.json";
@@ -14,6 +14,7 @@ import * as db from "./db.js";
 import { ChannelIdentity,
          CharacterClass,
          ItemQuality } from "./typings/types.js";
+import { handle_exception } from "./io.js";
 
 /**
  * Returns the URL of an icon based on it's name in the JavaScript.
@@ -126,36 +127,111 @@ export function get_channel_identity(channel: TextChannel
     };
 }
 
-export async function execute(command_name: string,
-                              message: Message,
-                              guild: Guild,
-                              ): Promise<string> {
-    const help_text =  "**Avaliable commands:**```css\n"
-                       + "help:                               "
-                       + "- Displays this text.\n"
-                       + "set_parser: <classicdb|itemization>"
-                       + " - Changes the parser of the bot."
-                       + "```";
-    switch (command_name) {
-        case "set_parser":
-            const is_owner = guild.ownerID !== message.author.id;
-            const override = config.override_ids.includes(message.author.id);
-            if (!is_owner && !override) {
-                return "Only the owner is allowed to change this.";
-            }
+export async function execute(
+    command_name: string,
+    message: Message,
+    guild: Guild,
+): Promise<string> {
+    const cmd = commands.find(c => c.name === command_name);
+    if (!cmd) {
+        return `*Unrecognized command* \`${command_name}\`\n\n${help_text}`;
+    }
+    cmd.exec(message, guild);
+}
 
-            const parser = message.content.split(" ")[2];
-            if (!parser || !avaliable_parsers.includes(parser)) {
-                return "Avaliable parsers are `classicdb` and `itemization`.";
-            }
+interface Command {
+    name: string
+    exec(message: Message, guild: Guild): Promise<string>
+}
 
-            return db.set_parser(guild, parser)
-                .then(() => `Updated parser to \`${parser}\`.`)
-                .catch(() => "An error occurred while updating parser.");
-        case "help":
-            return help_text;
-        default:
-            return `*Unrecognized command* \`${command_name}\`\n\n${help_text}`;
+const commands: Command[] = [
+    {
+        name: "set_parser",
+        exec: set_parser
+    },
+    {
+        name: "allow_channel",
+        exec: allow_channel
+    },
+    {
+        name: "allowed_channels",
+        exec: allowed_channels
+    },
+    {
+        name: "help",
+        exec: async () => help_text
+    }
+];
+
+const help_text = [
+    "**Avaliable commands:**```css",
+    "help:",
+    " - Displays this text.",
+    "set_parser: <classicdb|itemization>",
+    " - Changes the parser of the bot.",
+    "allow_channel: <channel_mention> [<channel_mention> ...]",
+    " - Allows the bot to respond to item queries in the mentioned text channels.",
+    "If there no channels are configured, then all channels are allowed.",
+    "allowed_channels:",
+    " - Display the list of allowed channels",
+    "```"
+].join("\n");
+
+async function set_parser(message: Message, guild: Guild): Promise<string> {
+    const is_owner = guild.ownerID === message.author.id;
+    const override = config.override_ids.includes(message.author.id);
+    if (!is_owner && !override) {
+        return "Only the owner is allowed to change this.";
+    }
+
+    const parser = message.content.split(" ")[2];
+    if (!parser || !avaliable_parsers.includes(parser)) {
+        return "Avaliable parsers are `classicdb` and `itemization`.";
+    }
+
+    try {
+        await db.set_parser(guild, parser);
+        return `Updated parser to \`${parser}\`.`;
+    } catch (exc) {
+        handle_exception(exc);
+        return "An error occurred while updating parser.";
+    }
+}
+
+async function allow_channel(message: Message, guild: Guild): Promise<string> {
+    const is_owner = guild.ownerID === message.author.id;
+    const override = config.override_ids.includes(message.author.id);
+    if (!is_owner && !override) {
+        return "Only the owner is allowed to change this.";
+    }
+
+    const channels = message.mentions.channels;
+    if (channels.size === 0) {
+        return "Mention at least one channel.";
+    }
+
+    const promises = channels.map(channel => db.set_guild_textchannel_allowed(channel, true));
+    try {
+        await Promise.all(promises);
+        return allowed_channels(message, guild);
+    } catch (exc) {
+        handle_exception(exc);
+        return "An error occurred while updating guild config.";
+    }
+}
+
+async function allowed_channels(message: Message, guild: Guild): Promise<string> {
+    try {
+        const channel_ids = await db.get_guild_allowed_textchannels(message.guild);
+        if (channel_ids.length === 0) {
+            return "All channels allowed.";
+        }
+        const channels = guild.channels.filter(c => channel_ids.includes(c.id));
+        const channel_mentions = channels.map(c => c.toString());
+        return `Allowed channels:\n${channel_mentions.join(" ")}`;
+    } catch (exc) {
+        handle_exception(exc);
+        return "An error occurred while getting allowed channels.";
     }
 }
 
@@ -193,4 +269,19 @@ export function is_string_numerical_int(str: string): boolean {
     const type_string = typeof str === "string";
     const regex_match = /^[-+]?[1-9]{1}\d+$|^[-+]?0$/.test(str);
     return type_string && regex_match;
+}
+
+/**
+ * Whether the bot is allowed to respond to an item query in a channel.
+ *
+ * @param channel - channel to test.
+ * @returns - True if bot response is allowed.
+ */
+export async function is_item_response_allowed(channel: TextChannel | GroupDMChannel | DMChannel): Promise<boolean> {
+    if (channel.type !== "text") {
+        return true;
+    }
+    const text_channel = channel as TextChannel;
+    const allowed_channels = await db.get_guild_allowed_textchannels(text_channel.guild);
+    return allowed_channels.length === 0 || allowed_channels.includes(text_channel.id);
 }
