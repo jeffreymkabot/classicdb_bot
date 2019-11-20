@@ -182,7 +182,7 @@ export function update_guild_icon(guild: Guild): void {
 }
 
 export async function guild_textchannel_exists(channel_id: string): Promise<boolean> {
-    const q = "SELECT EXISTS(SELECT '1' FROM guild_configs WHERE id = ?) as exi";
+    const q = "SELECT EXISTS(SELECT '1' FROM guild_textchannels WHERE id = ?) as exi";
     type Result = { exi: number };
     const result = await db.get(q, [channel_id]) as Result;
     return result.exi === 1;
