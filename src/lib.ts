@@ -136,7 +136,7 @@ export async function execute(
     if (!cmd) {
         return `*Unrecognized command* \`${command_name}\`\n\n${help_text}`;
     }
-    cmd.exec(message, guild);
+    return cmd.exec(message, guild);
 }
 
 interface Command {
