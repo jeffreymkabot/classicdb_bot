@@ -21,7 +21,6 @@ import { CharacterClass, ItemBinding } from "../../typings/types";
 
 import { build_message_description } from "./description_builder.js";
 import { Effect } from "./effect";
-import { equipment_str } from "./parser.js";
 import { Quest } from "./quest.js";
 
 /** Classicdb item class */
@@ -44,10 +43,10 @@ export class Item {
             (lines.find((line) =>
                 ((line || "").match(regex) || []).length > 0) || "").split(" ");
 
-        const $ = cheerio.load(table.html());
+        const $ = cheerio.load(table.html() || "");
         const thumbnail = await fetch_thumbnail(id);
         const table_contents = table.find("tr td").first();
-        const html = table.find("tr td").first().html();
+        const html = table.find("tr td").first().html() || "";
         const html_lines = html.split(html_tag_regex);
         const name_node = table_contents.find("b").first();
         const class_nodes = table_contents.find("font");
@@ -92,8 +91,6 @@ export class Item {
             line.startsWith("+") || line.startsWith("-"));
 
         const quest_a = table_contents.find("a").filter((_, a) => {
-            const t = $(a).text();
-            const h = $(a).attr("href");
             return $(a).attr("href").includes("?quest=")
                 && $(a).text() === "This Item Begins a Quest";
         });
@@ -115,7 +112,7 @@ export class Item {
             : null;
         const swing_speed_line = does_damage
             ? $(table_contents.find("table")[1]).find("th").text()
-            : null;
+            : "";
         const damage_range = damage_range_line
             ? {
                 high: parseInt(damage_range_line.split(" ")[2], 10),
@@ -201,19 +198,19 @@ export class Item {
     public binds_on: ItemBinding;
 
     // Optional properties
-    public begins_quest?: Quest;
+    public begins_quest?: Quest | null;
     public class_restrictions?: CharacterClass[];
-    public level_requirement?: number;
-    public durability?: number;
+    public level_requirement?: number | null;
+    public durability?: number | null;
     public primary_stats?: string[];
     public effects?: Effect[];
-    public armor?: number;
-    public block?: number;
-    public equipment_slot?: string;
-    public equipment_type?: string;
-    public damage_range?: {low: number; high: number};
-    public swing_speed?: number;
-    public dps?: number;
+    public armor?: number | null;
+    public block?: number | null;
+    public equipment_slot?: string | null;
+    public equipment_type?: string | null;
+    public damage_range?: {low: number; high: number} | null;
+    public swing_speed?: number | null;
+    public dps?: number | null;
     public flavor_text?: string;
 
     /**
@@ -248,19 +245,19 @@ export class Item {
                        quality_color: string,
                        unique: boolean,
                        binds_on: ItemBinding,
-                       begins_quest?: Quest,
+                       begins_quest?: Quest | null,
                        class_restrictions?: CharacterClass[],
-                       level_requirement?: number,
-                       durability?: number,
+                       level_requirement?: number | null,
+                       durability?: number | null,
                        primary_stats?: string[],
                        effects?: Effect[],
-                       armor?: number,
-                       block?: number,
-                       equipment_slot?: string,
-                       equipment_type?: string,
-                       damage_range?: {low: number; high: number},
-                       swing_speed?: number,
-                       dps?: number,
+                       armor?: number | null,
+                       block?: number | null,
+                       equipment_slot?: string | null,
+                       equipment_type?: string | null,
+                       damage_range?: {low: number; high: number} | null,
+                       swing_speed?: number | null,
+                       dps?: number | null,
                        flavor_text?: string) {
         this.id = id;
         this.name = name;
@@ -293,6 +290,9 @@ export class Item {
      * @returns - List of messages.
      */
     public async build_messages(): Promise<RichEmbed[]> {
+        if (!this.effects) {
+            return [];
+        }
         const effects = Promise.all(this.effects.filter((e) => {
             // Filter out all the miscellaneous effects, which should not be
             // shown as a seperate message.

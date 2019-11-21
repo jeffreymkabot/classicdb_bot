@@ -32,6 +32,7 @@ declare global {
 global.__rootdir__ = __dirname || process.cwd();
 
 process.on("uncaughtException", handle_exception);
+process.on("unhandledRejection", () => {});
 process.on("unhandledRejection", handle_exception);
 
 (async () => {
@@ -103,10 +104,13 @@ process.on("unhandledRejection", handle_exception);
         message = alias_meme_response(message);
 
         // Default guild parser;
-        const gp = await db.get_parser(channel_identity.guild_id);
-        current_parser = gp === "classicdb"
-            ? classicdb_parser
-            : itemization_parser;
+        current_parser = classicdb_parser;
+        if (channel_identity.guild_id) {
+            const gp = await db.get_parser(channel_identity.guild_id);
+            current_parser = gp === "classicdb"
+                ? classicdb_parser
+                : itemization_parser;
+        }
         // Manual parser overrides.
         if (message.content.includes("(classicdb)")) {
             current_parser = classicdb_parser;

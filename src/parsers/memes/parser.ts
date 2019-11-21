@@ -102,7 +102,7 @@ export function plaintext_meme_response(msg: discord.Message): string {
  * @param msg - Message to search.
  * @returns - Message response object.
  */
-export function file_meme_response(msg: discord.Message): discord.Attachment {
+export function file_meme_response(msg: discord.Message): discord.Attachment | undefined {
     for (const file_key of Object.keys(aliases.files)) {
         if (msg.content.toLowerCase() === file_key) {
             const file_name = aliases.files[file_key];

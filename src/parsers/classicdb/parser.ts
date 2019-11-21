@@ -51,7 +51,7 @@ export class ClassicDBParser implements Parser {
         }) || "");
     }
 
-    public async respond_to(message: Message): Promise<RichEmbed[]> {
+    public async respond_to(message: Message): Promise<RichEmbed[] | undefined> {
         const match = get_item_request(message.content);
         if (!match) { return undefined; }
         // If the match is an id build the message with that in mind.
@@ -70,7 +70,7 @@ export class ClassicDBParser implements Parser {
  */
 export async function build_messages_q(query: string,
                                        guild: Guild,
-                                       ): Promise<RichEmbed[]> {
+                                       ): Promise<RichEmbed[] | undefined> {
     log(`Building item from query ${query}`, LoggingLevel.DEV);
     const url = `${config.host}/opensearch.php?search=${query}`;
     const result = await request({json: true, uri: url});
@@ -164,7 +164,7 @@ export function get_item_request(message_content: string) {
  */
 export async function get_message_responses(message_content: string,
                                             guild: Guild,
-                                            ): Promise<RichEmbed[]> {
+                                            ): Promise<RichEmbed[] | undefined> {
     const match = get_item_request(message_content);
     if (!match) { return; }
     // If the match is an id build the message with that in mind.

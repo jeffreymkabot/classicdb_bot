@@ -37,7 +37,7 @@ const logging_formats = {
  *
  * @param error - Error to report.
  */
-export function handle_exception(error: Error | string): void {
+export function handle_exception(error: unknown): void {
     if (typeof error === "string") {
         error = new Error(error);
     }
@@ -46,7 +46,7 @@ export function handle_exception(error: Error | string): void {
     } else {
         // tslint:disable-next-line: no-console
         console.log(error);
-        log(`${error.stack}`, LoggingLevel.ERR);
+        log(`${error instanceof Error ? error.stack : error}`, LoggingLevel.ERR);
     }
 }
 

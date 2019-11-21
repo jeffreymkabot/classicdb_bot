@@ -20,9 +20,9 @@ export interface SpellDetails {
 
 export interface ChannelIdentity {
     guild_name: string;
-    guild_id: string;
+    guild_id: string | null;
     name: string;
-    owner_id: string;
+    owner_id: string | null;
 }
 
 export interface SetBonus {
@@ -67,7 +67,7 @@ export interface ParserQuery {
 }
 
 export interface Parser {
-    respond_to(query: Message): Promise<RichEmbed[]>;
+    respond_to(query: Message): Promise<RichEmbed[] | undefined>;
 }
 
 export interface QuestImplementable {
@@ -103,8 +103,8 @@ export interface ItemImplementable {
 }
 
 export interface ItemizationQuery {
-    item: string;
-    patch: string;
+    item: string | null;
+    patch: string | null;
 }
 
 export interface ItemizationEffect {

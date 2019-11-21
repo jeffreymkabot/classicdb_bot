@@ -6,7 +6,6 @@
 
 import * as cheerio from "cheerio";
 import { RichEmbed } from "discord.js";
-import { stat } from "fs";
 import * as request from "request-promise";
 
 import * as config from "../../../config.json";
@@ -29,10 +28,9 @@ export class Effect {
      * @returns - Generated effects.
      */
     public static from_item_table(table: Cheerio): Promise<Effect[]> {
-        const $ = cheerio.load(table.html());
+        const $ = cheerio.load(table.html() || "");
         const effects: Array<Promise<Effect>> = [];
         table.find("span.q2").each((_, node) => {
-            const h = $(node).find("a").attr("href");
             const id = $(node).find("a").attr("href").replace("?spell=", "");
             const trigger = $(node).text().split(":")[0];
             effects.push(Effect.from_id(id, trigger));
@@ -61,7 +59,7 @@ export class Effect {
 
         // Stats.
         const stats_td = $(stat_table).find("td").first();
-        const stat_html_lines = stats_td.html().split(html_tag_regex);
+        const stat_html_lines = (stats_td.html() || "").split(html_tag_regex);
 
         const range_line = range_and_cast_format(/[0-9]+ yd range/,
                                                  /Melee Range/g,
@@ -103,8 +101,8 @@ export class Effect {
     public thumbnail_href: string;
     public trigger_name: string;
     public is_misc: boolean;
-    public cast_time: string;
-    public range: string;
+    public cast_time: string | null;
+    public range: string | null;
 
     /**
      * Constructor
@@ -131,8 +129,8 @@ export class Effect {
                        thumbnail_href: string,
                        trigger_name: string,
                        is_misc: boolean,
-                       cast_time: string,
-                       range: string) {
+                       cast_time: string | null,
+                       range: string | null) {
         this.id = id;
         this.name = name;
         this.href = href;

@@ -25,7 +25,7 @@ import message_helper from "./message_helpers";
  * @param patch - Patch if different from latest.
  * @returns - Newline seperated string with item properties.
  */
-function item_to_message_desc(im: ItemizationItemMeta, patch?: string): string {
+function item_to_message_desc(im: ItemizationItemMeta, patch?: string | null): string {
     const item_liststing = [im.Current, ...im.Previous];
     const found_patched_item = item_liststing.find((i) => i.Patch === patch);
     const item = found_patched_item || im.Current;

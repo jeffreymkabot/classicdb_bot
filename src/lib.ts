@@ -98,8 +98,8 @@ export function get_channel_identity(channel: TextChannel
                                      ): ChannelIdentity {
     let channel_name = "";
     let guild_name = "";
-    let owner_id = "";
-    let guild_id = "";
+    let owner_id: string | null = "";
+    let guild_id: string | null = "";
 
     if (channel.type === "dm") {
         channel_name = `Private DM for user ${author}`;
@@ -139,7 +139,7 @@ export async function execute(command_name: string,
     switch (command_name) {
         case "set_parser":
             const is_owner = guild.ownerID !== message.author.id;
-            const override = config.override_ids.includes(message.author.id);
+            const override = (config.override_ids as string[]).includes(message.author.id);
             if (!is_owner && !override) {
                 return "Only the owner is allowed to change this.";
             }

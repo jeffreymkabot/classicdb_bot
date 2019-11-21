@@ -56,6 +56,9 @@ export default class ItemizationItemTooltipHelpers {
      * @returns - Weapon damage range per swing.
      */
     public static damage(i: ItemizationItem): string {
+        if (!i.Damage) {
+            return "";
+        }
         let result = "";
         for (const damage_type of Object.keys(i.Damage)) {
             const min = i.Damage[damage_type].Min;
@@ -106,6 +109,9 @@ export default class ItemizationItemTooltipHelpers {
      * @returns - Effect descriptions.
      */
     public static effects(i: ItemizationItem) {
+        if (!i.Effects) {
+            return "";
+        }
         let result = "";
         for (const effect of i.Effects) {
             result += `**${effect.Trigger}: ${effect.Effect}**\n`;
@@ -120,31 +126,35 @@ export default class ItemizationItemTooltipHelpers {
      * @returns - Item source description.
      */
     public static source(i: ItemizationItem) {
-        const uri_zone = `"${encodeURIComponent(i.Source.Zone)}"`;
-        const uri_entity = `"${encodeURIComponent(i.Source.Entity)}"`;
+        const i_zone = i.Source && i.Source.Zone || "";
+        const i_entity = i.Source && i.Source.Entity || "";
+        const i_type = i.Source && i.Source.Type || "";
+
+        const uri_zone = `"${encodeURIComponent(i_zone)}"`;
+        const uri_entity = `"${encodeURIComponent(i_entity)}"`;
 
         const zurl = `${search_url_stub}source:${uri_zone || ""}`;
         const eurl = `${search_url_stub}source:${uri_entity || ""}`;
 
-        const zone = i.Source.Zone ? `in [${i.Source.Zone}](${zurl})` : "";
-        const entity = i.Source.Entity ? `[${i.Source.Entity}](${eurl})` : "";
+        const zone = i_zone ? `in [${i_zone}](${zurl})` : "";
+        const entity = i_entity ? `[${i_entity}](${eurl})` : "";
 
-        if (i.Source.Type === "Quest" && i.Source.Entity) {
+        if (i_type === "Quest" && i_entity) {
             // Entity in this case represents the name of a quest.
-            return `Source: Awarded from _${i.Source.Entity}_ ${zone}\n`;
+            return `Source: Awarded from _${i_entity}_ ${zone}\n`;
         }
 
-        if (i.Source.Type === "Container" && i.Source.Entity) {
-            return `Source: Contained in _${i.Source.Entity}_ ${zone}\n`;
+        if (i_type === "Container" && i_entity) {
+            return `Source: Contained in _${i_entity}_ ${zone}\n`;
         }
 
-        if (i.Source.Type === "Drop" && i.Source.Entity) {
+        if (i_type === "Drop" && i_entity) {
             return `Source: Dropped by ${entity} ${zone}\n`;
         }
 
-        if (i.Source.Type === "Crafting" && i.Source.Entity) {
-            const profession = proffesions[i.Source.Entity]
-                || i.Source.Entity;
+        if (i_type === "Crafting" && i_entity) {
+            const profession = proffesions[i_entity]
+                || i_entity;
             return `Source: Crafted by [${profession}](${eurl}) ${zone}\n`;
         }
 
@@ -164,8 +174,10 @@ export default class ItemizationItemTooltipHelpers {
 
         // Find the first instance of the item.
         const first_avaliable_version = im.Previous.sort((a, b) => {
-            const parsed_patch_a = parseFloat(a.Patch.replace("1.", ""));
-            const parsed_patch_b = parseFloat(b.Patch.replace("1.", ""));
+            const patch_a = a.Patch || "";
+            const patch_b = b.Patch || "";
+            const parsed_patch_a = parseFloat(patch_a.replace("1.", ""));
+            const parsed_patch_b = parseFloat(patch_b.replace("1.", ""));
             return parsed_patch_a - parsed_patch_b;
         })[0];
         const first_patch = first_avaliable_version.Patch;

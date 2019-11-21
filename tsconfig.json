@@ -12,7 +12,9 @@
         "lib": ["esnext"],
         "outDir": "dist",
         "moduleResolution": "node",
-        "allowJs": true
+        "allowJs": true,
+        "strict": true,
+        "noUnusedLocals": true
     },
     "include": [
         "src/**/*.ts"
