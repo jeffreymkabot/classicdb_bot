@@ -32,7 +32,6 @@ declare global {
 global.__rootdir__ = __dirname || process.cwd();
 
 process.on("uncaughtException", handle_exception);
-process.on("unhandledRejection", () => {});
 process.on("unhandledRejection", handle_exception);
 
 (async () => {
